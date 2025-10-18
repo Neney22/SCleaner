@@ -9,4 +9,4 @@ Pillow==10.1.0
 loguru==0.7.3
 tqdm==4.66.1
 opencv-python-headless==4.8.1.78
-ffmpeg-python==0.2.2
+ffmpeg-python==0.2.0
