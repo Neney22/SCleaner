@@ -44,7 +44,7 @@ starlette==0.37.2
 
 # iopaint / SoraWM dependencies
 huggingface_hub==0.18.0
-safetensors==0.3.3 --only-binary :all:
+safetensors==0.4.6 --only-binary :all:
 pybind11>=2.12
 
 
