@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sorawm.core import SoraWM
 
 # ==========================
-# BASIC APP CONFIG
+# APP CONFIG
 # ==========================
 app = FastAPI(title="Sora Watermark Cleaner API")
 
@@ -19,10 +19,10 @@ PROCESSED_DIR = Path("processed")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(PROCESSED_DIR, exist_ok=True)
 
-# Allow access from anywhere (you can restrict later)
+# Allow your frontend domain for CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # e.g., ["https://trendsturds.com"]
+    allow_origins=["https://trendsturds.com"],  # <-- Replace with your actual frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -35,17 +35,13 @@ user_limits = {}
 
 @app.middleware("http")
 async def limit_ip_usage(request: Request, call_next):
-    """Limit each IP to 10 uploads per day."""
     client_ip = request.client.host
     today = datetime.date.today().isoformat()
     user_limits.setdefault(client_ip, {}).setdefault(today, 0)
 
     if request.url.path == "/submit_remove_task" and request.method == "POST":
         if user_limits[client_ip][today] >= 10:
-            return JSONResponse(
-                status_code=429,
-                content={"detail": "Daily limit reached (10 videos/day)."}
-            )
+            return JSONResponse(status_code=429, content={"detail": "Daily limit reached (10 videos/day)."})
         user_limits[client_ip][today] += 1
 
     return await call_next(request)
@@ -65,6 +61,7 @@ async def process_video(task_id: str, input_path: Path, output_path: Path):
         sora.run(input_path, output_path)
         tasks[task_id]["status"] = "completed"
         tasks[task_id]["download_url"] = f"/download/{task_id}"
+        tasks[task_id]["progress"] = 100
         print(f"[Task {task_id}] Completed successfully.")
     except Exception as e:
         tasks[task_id]["status"] = "failed"
@@ -74,10 +71,12 @@ async def process_video(task_id: str, input_path: Path, output_path: Path):
 # ==========================
 # ROUTES
 # ==========================
+@app.get("/healthz")
+def health_check():
+    return {"status": "ok"}
 
 @app.post("/submit_remove_task")
 async def submit_remove_task(file: UploadFile = File(...), request: Request = None):
-    """Receive video, start background task, and return task ID."""
     task_id = str(uuid.uuid4())
     input_path = UPLOAD_DIR / f"{task_id}_{file.filename}"
     output_path = PROCESSED_DIR / f"{task_id}_cleaned.mp4"
@@ -90,6 +89,7 @@ async def submit_remove_task(file: UploadFile = File(...), request: Request = No
         "input": str(input_path),
         "output": str(output_path),
         "download_url": None,
+        "progress": 0,
         "created_at": datetime.datetime.utcnow().isoformat()
     }
 
@@ -98,15 +98,19 @@ async def submit_remove_task(file: UploadFile = File(...), request: Request = No
 
 @app.get("/get_results")
 async def get_results(task_id: str):
-    """Check progress or get download link."""
     task = tasks.get(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    return task
+    # Return progress too
+    return {
+        "status": task["status"],
+        "progress": task.get("progress", 0),
+        "download_url": task.get("download_url"),
+        "error": task.get("error")
+    }
 
 @app.get("/download/{task_id}")
 async def download(task_id: str):
-    """Download the processed video."""
     task = tasks.get(task_id)
     if not task or task.get("status") != "completed":
         raise HTTPException(status_code=404, detail="Task not ready or not found")
@@ -116,25 +120,17 @@ async def download(task_id: str):
 def home():
     return {"message": "✅ Sora Watermark Cleaner API is running."}
 
-@app.get("/healthz")
-def health_check():
-    return {"status": "ok"}
-
 # ==========================
 # ENTRY POINT
 # ==========================
 if __name__ == "__main__":
     import uvicorn
-    import os
-
-    port = int(os.environ.get("PORT", 10000))  # Render auto-assigns this
+    port = int(os.environ.get("PORT", 10000))
     print(f"🚀 Starting Sora API on port {port}...")
-
-    # Run using module path reference — required for Render to detect
     uvicorn.run(
-        "start_server:app",  # must match this filename
+        "start_server:app",  # Make sure the filename matches exactly
         host="0.0.0.0",
         port=port,
         reload=False,
-        workers=1,
+        workers=1
     )
