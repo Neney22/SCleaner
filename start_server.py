@@ -125,6 +125,16 @@ def health_check():
 # ==========================
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 5344))
-    print(f"🚀 Starting Sora API on port {port}")
-    uvicorn.run("start_server:app", host="0.0.0.0", port=port)
+    import os
+
+    port = int(os.environ.get("PORT", 10000))  # Render auto-assigns this
+    print(f"🚀 Starting Sora API on port {port}...")
+
+    # Run using module path reference — required for Render to detect
+    uvicorn.run(
+        "start_server:app",  # must match this filename
+        host="0.0.0.0",
+        port=port,
+        reload=False,
+        workers=1,
+    )
