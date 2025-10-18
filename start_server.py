@@ -13,15 +13,16 @@ from sorawm.core import SoraWM
 # BASIC APP CONFIG
 # ==========================
 app = FastAPI(title="Sora Watermark Cleaner API")
+
 UPLOAD_DIR = Path("uploads")
 PROCESSED_DIR = Path("processed")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(PROCESSED_DIR, exist_ok=True)
 
-# Allow access from your frontend domain
+# Allow access from anywhere (you can restrict later)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # You can restrict to your domain later: ["https://trendsturds.com"]
+    allow_origins=["*"],  # e.g., ["https://trendsturds.com"]
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -41,7 +42,10 @@ async def limit_ip_usage(request: Request, call_next):
 
     if request.url.path == "/submit_remove_task" and request.method == "POST":
         if user_limits[client_ip][today] >= 10:
-            return JSONResponse(status_code=429, content={"detail": "Daily limit reached (10 videos/day)."})
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Daily limit reached (10 videos/day)."}
+            )
         user_limits[client_ip][today] += 1
 
     return await call_next(request)
@@ -90,7 +94,6 @@ async def submit_remove_task(file: UploadFile = File(...), request: Request = No
     }
 
     asyncio.create_task(process_video(task_id, input_path, output_path))
-
     return {"task_id": task_id, "message": "Processing started"}
 
 @app.get("/get_results")
@@ -111,12 +114,17 @@ async def download(task_id: str):
 
 @app.get("/")
 def home():
-    return {"message": "Sora Watermark Cleaner API is running."}
+    return {"message": "✅ Sora Watermark Cleaner API is running."}
+
+@app.get("/healthz")
+def health_check():
+    return {"status": "ok"}
 
 # ==========================
 # ENTRY POINT
 # ==========================
 if __name__ == "__main__":
-    import uvicorn, os
-    port = int(os.environ.get("PORT", 5344))  # Render sets this automatically
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    import uvicorn
+    port = int(os.environ.get("PORT", 5344))
+    print(f"🚀 Starting Sora API on port {port}")
+    uvicorn.run("start_server:app", host="0.0.0.0", port=port)
