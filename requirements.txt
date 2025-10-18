@@ -1,4 +1,3 @@
-
 ffmpeg-python==0.2.0
 
 # FastAPI stack
@@ -21,9 +20,6 @@ numpy<2
 
 # OpenCV (headless for server)
 opencv-python-headless==4.8.1.78
-
-# Video/audio processing
-ffmpeg-python==0.2.0
 
 # Utilities
 loguru==0.7.3
@@ -48,7 +44,7 @@ starlette==0.37.2
 
 # iopaint / SoraWM dependencies
 huggingface_hub==0.18.0
-safetensors==0.3.2
+safetensors==0.3.3
 pybind11>=2.12
 
 # NVIDIA CUDA libraries (optional if using GPU)
