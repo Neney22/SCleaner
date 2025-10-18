@@ -1,6 +1,6 @@
 fastapi==0.111.0
 uvicorn[standard]==0.23.2
-torch==2.4.0
+torch==2.5.0
 torchvision==0.20.0
 aiofiles==23.2.1
 python-multipart>=0.0.7
