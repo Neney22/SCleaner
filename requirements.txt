@@ -1,0 +1,9 @@
+fastapi==0.111.0
+uvicorn[standard]==0.23.2
+torch==2.1.0
+torchvision==0.16.1
+aiofiles==23.2.1
+python-multipart==0.0.6
+sorawm @ git+https://github.com/linkedlist771/SoraWatermarkCleaner.git
+numpy==1.27.0
+Pillow==10.1.0
