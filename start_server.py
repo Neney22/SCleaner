@@ -1,3 +1,25 @@
+
+from fastapi import FastAPI, Request, UploadFile, HTTPException
+import datetime
+
+app = FastAPI()
+
+user_limits = {}
+
+@app.middleware("http")
+async def limit_ip_usage(request: Request, call_next):
+    client_ip = request.client.host
+    today = datetime.date.today().isoformat()
+    user_limits.setdefault(client_ip, {}).setdefault(today, 0)
+
+    if request.url.path == "/submit_remove_task" and request.method == "POST":
+        if user_limits[client_ip][today] >= 10:
+            raise HTTPException(status_code=429, detail="Daily limit reached (10 videos/day)")
+        user_limits[client_ip][today] += 1
+
+    return await call_next(request)
+
+
 import argparse
 
 import fire
