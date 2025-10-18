@@ -10,3 +10,4 @@ loguru==0.7.3
 tqdm==4.66.1
 opencv-python-headless==4.8.1.78
 ffmpeg-python==0.2.0
+huggingface_hub==0.18.1
