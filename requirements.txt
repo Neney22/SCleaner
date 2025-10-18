@@ -10,3 +10,4 @@ tqdm==4.66.1
 python-multipart>=0.0.7
 ffmpeg-python==0.2.0
 huggingface_hub==0.18.0
+safetensors==0.3.3
