@@ -28,7 +28,6 @@ ffmpeg-python==0.2.0
 # Utilities
 loguru==0.7.3
 tqdm==4.66.1
-safetensors==0.3.3
 pyyaml==6.0.3
 python-dotenv==1.1.1
 orjson==3.11.3
