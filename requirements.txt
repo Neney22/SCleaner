@@ -44,22 +44,9 @@ starlette==0.37.2
 
 # iopaint / SoraWM dependencies
 huggingface_hub==0.18.0
-safetensors==0.3.3
+safetensors==0.3.3 --only-binary :all:
 pybind11>=2.12
 
-# NVIDIA CUDA libraries (optional if using GPU)
-nvidia-nvtx-cu12
-nvidia-nvjitlink-cu12
-nvidia-nccl-cu12
-nvidia-curand-cu12
-nvidia-cufft-cu12
-nvidia-cuda-runtime-cu12
-nvidia-cuda-nvrtc-cu12
-nvidia-cuda-cupti-cu12
-nvidia-cublas-cu12
-nvidia-cusparse-cu12
-nvidia-cusolver-cu12
-nvidia-cudnn-cu12
 
 # Others
 networkx==3.5
