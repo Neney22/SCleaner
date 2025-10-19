@@ -1,12 +1,10 @@
 import os
-import argparse
 import asyncio
 import uuid
 import shutil
 import datetime
 from pathlib import Path
 
-import fire
 import uvicorn
 from loguru import logger
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request
@@ -20,17 +18,6 @@ from sorawm.configs import LOGS_PATH
 # LOGGING
 # ==========================
 logger.add(LOGS_PATH / "log_file.log", rotation="1 week")
-
-# ==========================
-# PORT CONFIG (Render)
-# ==========================
-default_port = int(os.environ.get("PORT", 5344))  # Render assigns a dynamic port
-
-parser = argparse.ArgumentParser()
-parser.add_argument("--host", default="0.0.0.0", help="host")
-parser.add_argument("--port", default=default_port, type=int, help="port")
-parser.add_argument("--workers", default=1, type=int, help="workers")
-args = parser.parse_args()
 
 # ==========================
 # APP INIT
@@ -48,7 +35,7 @@ os.makedirs(PROCESSED_DIR, exist_ok=True)
 # ==========================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://trendsturds.com"],  # Replace with your real frontend URL
+    allow_origins=["https://trendsturds.com"],  # Replace with your frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -149,19 +136,9 @@ def home():
     return {"message": "✅ Sora Watermark Cleaner API is running."}
 
 # ==========================
-# START SERVER FUNCTION
-# ==========================
-def start_server(port=args.port, host=args.host):
-    logger.info(f"Starting server at {host}:{port}")
-    config = uvicorn.Config(app, host=host, port=port, workers=args.workers)
-    server = uvicorn.Server(config=config)
-    try:
-        server.run()
-    finally:
-        logger.info("Server shutdown.")
-
-# ==========================
-# ENTRY POINT
+# ENTRY POINT (Render-ready)
 # ==========================
 if __name__ == "__main__":
-    fire.Fire(start_server)
+    port = int(os.environ.get("PORT", 5344))  # Render assigns a dynamic port
+    print(f"🚀 Starting Sora API on port {port}...")
+    uvicorn.run(app, host="0.0.0.0", port=port)
