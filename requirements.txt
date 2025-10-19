@@ -47,7 +47,7 @@ watchfiles==1.1.1
 starlette==0.37.2
 
 # iopaint / SoraWM dependencies
-huggingface_hub==0.18.0
+huggingface_hub>=0.23.2
 safetensors
 pybind11>=2.12
 
