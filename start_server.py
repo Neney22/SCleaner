@@ -14,36 +14,27 @@ from fastapi.middleware.cors import CORSMiddleware
 from sorawm.core import SoraWM
 from sorawm.configs import LOGS_PATH
 
-# ==========================
-# LOGGING
-# ==========================
+# Logging
 logger.add(LOGS_PATH / "log_file.log", rotation="1 week")
 
-# ==========================
-# APP INIT
-# ==========================
+# App init
 app = FastAPI(title="Sora Watermark Cleaner API")
 
-# Directories
 UPLOAD_DIR = Path("uploads")
 PROCESSED_DIR = Path("processed")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(PROCESSED_DIR, exist_ok=True)
 
-# ==========================
-# CORS (allow frontend domain)
-# ==========================
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://trendsturds.com"],  # Replace with your frontend URL
+    allow_origins=["https://trendsturds.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ==========================
-# RATE LIMITER (IP-based, 10 videos/day)
-# ==========================
+# IP rate limiting
 user_limits = {}
 
 @app.middleware("http")
@@ -62,14 +53,10 @@ async def limit_ip_usage(request: Request, call_next):
 
     return await call_next(request)
 
-# ==========================
-# TASK STORAGE
-# ==========================
+# Task storage
 tasks = {}
 
-# ==========================
-# BACKGROUND JOB
-# ==========================
+# Background job
 async def process_video(task_id: str, input_path: Path, output_path: Path):
     try:
         logger.info(f"[Task {task_id}] Starting watermark removal: {input_path}")
@@ -84,9 +71,7 @@ async def process_video(task_id: str, input_path: Path, output_path: Path):
         tasks[task_id]["error"] = str(e)
         logger.error(f"[Task {task_id}] Failed: {e}")
 
-# ==========================
-# ROUTES
-# ==========================
+# Routes
 @app.get("/healthz")
 def health_check():
     return {"status": "ok"}
@@ -136,9 +121,8 @@ def home():
     return {"message": "✅ Sora Watermark Cleaner API is running."}
 
 # ==========================
-# ENTRY POINT
+# START SERVER (Render-ready)
 # ==========================
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5344))  # Render dynamically sets this
-    print(f"🚀 Starting Sora API on port {port}...")
-    uvicorn.run("start_server:app", host="0.0.0.0", port=port)
+    port = int(os.environ.get("PORT", 5344))
+    uvicorn.run(app, host="0.0.0.0", port=port)
