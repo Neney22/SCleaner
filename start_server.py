@@ -144,5 +144,8 @@ async def head_handler(rest_of_path: str):
 # RUN APP
 # ==========================
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5344))  # Render dynamic port
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    import os
+    import uvicorn
+
+    port = int(os.environ.get("PORT", 5344))
+    uvicorn.run("start_server:app", host="0.0.0.0", port=port)
