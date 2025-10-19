@@ -112,4 +112,32 @@ async def submit_remove_task(file: UploadFile = File(...)):
     asyncio.create_task(process_video(task_id, input_path, output_path))
     return {"task_id": task_id, "message": "Processing started"}
 
-@app.get("/get_res_
+@app.get("/get_results")
+async def get_results(task_id: str):
+    task = tasks.get(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return {
+        "status": task["status"],
+        "progress": task.get("progress", 0),
+        "download_url": task.get("download_url"),
+        "error": task.get("error"),
+    }
+
+@app.get("/download/{task_id}")
+async def download(task_id: str):
+    task = tasks.get(task_id)
+    if not task or task.get("status") != "completed":
+        raise HTTPException(status_code=404, detail="Task not ready or not found")
+    return FileResponse(task["output"], filename="sora_cleaned.mp4")
+
+@app.get("/")
+def home():
+    return {"message": "✅ Sora Watermark Cleaner API is running."}
+
+# ==========================
+# RUN APP
+# ==========================
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5344))  # Render dynamic port
+    uvicorn.run(app, host="0.0.0.0", port=port)
