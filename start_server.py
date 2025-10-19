@@ -14,27 +14,36 @@ from fastapi.middleware.cors import CORSMiddleware
 from sorawm.core import SoraWM
 from sorawm.configs import LOGS_PATH
 
-# Logging
+# ==========================
+# LOGGING
+# ==========================
 logger.add(LOGS_PATH / "log_file.log", rotation="1 week")
 
-# App init
+# ==========================
+# APP INIT
+# ==========================
 app = FastAPI(title="Sora Watermark Cleaner API")
 
+# Directories
 UPLOAD_DIR = Path("uploads")
 PROCESSED_DIR = Path("processed")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(PROCESSED_DIR, exist_ok=True)
 
-# CORS
+# ==========================
+# CORS (allow your frontend domain)
+# ==========================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://trendsturds.com"],
+    allow_origins=["https://trendsturds.com"],  # Replace with your frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# IP rate limiting
+# ==========================
+# RATE LIMITER (IP-based)
+# ==========================
 user_limits = {}
 
 @app.middleware("http")
@@ -53,10 +62,14 @@ async def limit_ip_usage(request: Request, call_next):
 
     return await call_next(request)
 
-# Task storage
+# ==========================
+# TASK STORAGE
+# ==========================
 tasks = {}
 
-# Background job
+# ==========================
+# BACKGROUND JOB
+# ==========================
 async def process_video(task_id: str, input_path: Path, output_path: Path):
     try:
         logger.info(f"[Task {task_id}] Starting watermark removal: {input_path}")
@@ -71,7 +84,9 @@ async def process_video(task_id: str, input_path: Path, output_path: Path):
         tasks[task_id]["error"] = str(e)
         logger.error(f"[Task {task_id}] Failed: {e}")
 
-# Routes
+# ==========================
+# ROUTES
+# ==========================
 @app.get("/healthz")
 def health_check():
     return {"status": "ok"}
@@ -97,32 +112,4 @@ async def submit_remove_task(file: UploadFile = File(...)):
     asyncio.create_task(process_video(task_id, input_path, output_path))
     return {"task_id": task_id, "message": "Processing started"}
 
-@app.get("/get_results")
-async def get_results(task_id: str):
-    task = tasks.get(task_id)
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
-    return {
-        "status": task["status"],
-        "progress": task.get("progress", 0),
-        "download_url": task.get("download_url"),
-        "error": task.get("error"),
-    }
-
-@app.get("/download/{task_id}")
-async def download(task_id: str):
-    task = tasks.get(task_id)
-    if not task or task.get("status") != "completed":
-        raise HTTPException(status_code=404, detail="Task not ready or not found")
-    return FileResponse(task["output"], filename="sora_cleaned.mp4")
-
-@app.get("/")
-def home():
-    return {"message": "✅ Sora Watermark Cleaner API is running."}
-
-# ==========================
-# START SERVER (Render-ready)
-# ==========================
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5344))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+@app.get("/get_res_
