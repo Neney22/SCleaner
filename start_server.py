@@ -31,7 +31,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(PROCESSED_DIR, exist_ok=True)
 
 # ==========================
-# CORS (allow your frontend domain)
+# CORS (allow frontend domain)
 # ==========================
 app.add_middleware(
     CORSMiddleware,
@@ -42,7 +42,7 @@ app.add_middleware(
 )
 
 # ==========================
-# RATE LIMITER (IP-based)
+# RATE LIMITER (IP-based, 10 videos/day)
 # ==========================
 user_limits = {}
 
@@ -136,9 +136,9 @@ def home():
     return {"message": "✅ Sora Watermark Cleaner API is running."}
 
 # ==========================
-# ENTRY POINT (Render-ready)
+# ENTRY POINT
 # ==========================
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5344))  # Render assigns a dynamic port
+    port = int(os.environ.get("PORT", 5344))  # Render dynamically sets this
     print(f"🚀 Starting Sora API on port {port}...")
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run("start_server:app", host="0.0.0.0", port=port)
