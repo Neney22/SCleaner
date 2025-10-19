@@ -8,6 +8,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sorawm.core import SoraWM
+import uvicorn
 
 # ==========================
 # APP CONFIG
@@ -22,7 +23,7 @@ os.makedirs(PROCESSED_DIR, exist_ok=True)
 # Allow your frontend domain for CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://trendsturds.com"],  # <-- Replace with your actual frontend URL
+    allow_origins=["https://trendsturds.com"],  # Replace with your real frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -47,12 +48,12 @@ async def limit_ip_usage(request: Request, call_next):
     return await call_next(request)
 
 # ==========================
-# TASK STORAGE (in-memory)
+# TASK STORAGE
 # ==========================
 tasks = {}
 
 # ==========================
-# BACKGROUND CLEANING JOB
+# BACKGROUND JOB
 # ==========================
 async def process_video(task_id: str, input_path: Path, output_path: Path):
     try:
@@ -76,7 +77,7 @@ def health_check():
     return {"status": "ok"}
 
 @app.post("/submit_remove_task")
-async def submit_remove_task(file: UploadFile = File(...), request: Request = None):
+async def submit_remove_task(file: UploadFile = File(...)):
     task_id = str(uuid.uuid4())
     input_path = UPLOAD_DIR / f"{task_id}_{file.filename}"
     output_path = PROCESSED_DIR / f"{task_id}_cleaned.mp4"
@@ -90,7 +91,7 @@ async def submit_remove_task(file: UploadFile = File(...), request: Request = No
         "output": str(output_path),
         "download_url": None,
         "progress": 0,
-        "created_at": datetime.datetime.utcnow().isoformat()
+        "created_at": datetime.datetime.utcnow().isoformat(),
     }
 
     asyncio.create_task(process_video(task_id, input_path, output_path))
@@ -101,12 +102,11 @@ async def get_results(task_id: str):
     task = tasks.get(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    # Return progress too
     return {
         "status": task["status"],
         "progress": task.get("progress", 0),
         "download_url": task.get("download_url"),
-        "error": task.get("error")
+        "error": task.get("error"),
     }
 
 @app.get("/download/{task_id}")
@@ -124,13 +124,6 @@ def home():
 # ENTRY POINT
 # ==========================
 if __name__ == "__main__":
-    import uvicorn
-    port = int(os.environ.get("PORT", 10000))
+    port = int(os.environ.get("PORT", 8000))  # Render assigns a dynamic port
     print(f"🚀 Starting Sora API on port {port}...")
-    uvicorn.run(
-        "start_server:app",  # Make sure the filename matches exactly
-        host="0.0.0.0",
-        port=port,
-        reload=False,
-        workers=1
-    )
+    uvicorn.run(app, host="0.0.0.0", port=port)
