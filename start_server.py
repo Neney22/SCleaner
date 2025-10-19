@@ -17,7 +17,7 @@ from sorawm.configs import LOGS_PATH
 # ==========================
 # LOGGING
 # ==========================
-logger.add(LOGS_PATH / "log_file.log", rotation="1 week")
+logger.add(LOGS_PATH / "log_file.log", rotation="1 week", enqueue=True)
 
 # ==========================
 # APP INIT
@@ -88,7 +88,7 @@ async def process_video(task_id: str, input_path: Path, output_path: Path):
 # ROUTES
 # ==========================
 @app.get("/healthz")
-def health_check():
+async def health_check():
     return {"status": "ok"}
 
 @app.post("/submit_remove_task")
@@ -132,8 +132,13 @@ async def download(task_id: str):
     return FileResponse(task["output"], filename="sora_cleaned.mp4")
 
 @app.get("/")
-def home():
+async def home():
     return {"message": "✅ Sora Watermark Cleaner API is running."}
+
+# Handle HEAD requests to avoid 405 errors
+@app.head("/{rest_of_path:path}")
+async def head_handler(rest_of_path: str):
+    return JSONResponse(status_code=200, content={})
 
 # ==========================
 # RUN APP
