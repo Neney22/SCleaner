@@ -1,129 +1,45 @@
-import datetime
 import os
-import uuid
-import shutil
-import asyncio
-from pathlib import Path
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request
-from fastapi.responses import FileResponse, JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
-from sorawm.core import SoraWM
+import sys
 import uvicorn
+from fastapi import FastAPI, UploadFile, File
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 
-# ==========================
-# APP CONFIG
-# ==========================
-app = FastAPI(title="Sora Watermark Cleaner API")
+# --- Import your watermark removal logic ---
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+try:
+    from sorawm.core import remove_watermark_task  # adjust if path differs
+except Exception as e:
+    print("⚠️ Failed to import sorawm.core:", e)
+    remove_watermark_task = None
 
-UPLOAD_DIR = Path("uploads")
-PROCESSED_DIR = Path("processed")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-os.makedirs(PROCESSED_DIR, exist_ok=True)
+# --- FastAPI app setup ---
+app = FastAPI(title="SoraWM - Watermark Remover Service")
 
-# Allow your frontend domain for CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://trendsturds.com"],  # Replace with your real frontend URL
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ==========================
-# RATE LIMITER (by IP)
-# ==========================
-user_limits = {}
-
-@app.middleware("http")
-async def limit_ip_usage(request: Request, call_next):
-    client_ip = request.client.host
-    today = datetime.date.today().isoformat()
-    user_limits.setdefault(client_ip, {}).setdefault(today, 0)
-
-    if request.url.path == "/submit_remove_task" and request.method == "POST":
-        if user_limits[client_ip][today] >= 10:
-            return JSONResponse(status_code=429, content={"detail": "Daily limit reached (10 videos/day)."})
-        user_limits[client_ip][today] += 1
-
-    return await call_next(request)
-
-# ==========================
-# TASK STORAGE
-# ==========================
-tasks = {}
-
-# ==========================
-# BACKGROUND JOB
-# ==========================
-async def process_video(task_id: str, input_path: Path, output_path: Path):
-    try:
-        print(f"[Task {task_id}] Starting watermark removal: {input_path}")
-        sora = SoraWM()
-        sora.run(input_path, output_path)
-        tasks[task_id]["status"] = "completed"
-        tasks[task_id]["download_url"] = f"/download/{task_id}"
-        tasks[task_id]["progress"] = 100
-        print(f"[Task {task_id}] Completed successfully.")
-    except Exception as e:
-        tasks[task_id]["status"] = "failed"
-        tasks[task_id]["error"] = str(e)
-        print(f"[Task {task_id}] Failed: {e}")
-
-# ==========================
-# ROUTES
-# ==========================
-@app.get("/healthz")
-def health_check():
-    return {"status": "ok"}
+@app.get("/")
+def root():
+    return {"message": "✅ SoraWM API is running on Render!"}
 
 @app.post("/submit_remove_task")
 async def submit_remove_task(file: UploadFile = File(...)):
-    task_id = str(uuid.uuid4())
-    input_path = UPLOAD_DIR / f"{task_id}_{file.filename}"
-    output_path = PROCESSED_DIR / f"{task_id}_cleaned.mp4"
+    if not remove_watermark_task:
+        return JSONResponse({"error": "Server misconfigured. Model not loaded."}, status_code=500)
+    try:
+        task_id = remove_watermark_task(file)
+        return JSONResponse({"status": "processing", "task_id": task_id})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
 
-    with open(input_path, "wb") as f:
-        shutil.copyfileobj(file.file, f)
-
-    tasks[task_id] = {
-        "status": "processing",
-        "input": str(input_path),
-        "output": str(output_path),
-        "download_url": None,
-        "progress": 0,
-        "created_at": datetime.datetime.utcnow().isoformat(),
-    }
-
-    asyncio.create_task(process_video(task_id, input_path, output_path))
-    return {"task_id": task_id, "message": "Processing started"}
-
-@app.get("/get_results")
-async def get_results(task_id: str):
-    task = tasks.get(task_id)
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
-    return {
-        "status": task["status"],
-        "progress": task.get("progress", 0),
-        "download_url": task.get("download_url"),
-        "error": task.get("error"),
-    }
-
-@app.get("/download/{task_id}")
-async def download(task_id: str):
-    task = tasks.get(task_id)
-    if not task or task.get("status") != "completed":
-        raise HTTPException(status_code=404, detail="Task not ready or not found")
-    return FileResponse(task["output"], filename="sora_cleaned.mp4")
-
-@app.get("/")
-def home():
-    return {"message": "✅ Sora Watermark Cleaner API is running."}
-
-# ==========================
-# ENTRY POINT
-# ==========================
+# --- Run Server ---
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))  # Render assigns a dynamic port
-    print(f"🚀 Starting Sora API on port {port}...")
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    port = int(os.environ.get("PORT", "5344"))
+    print(f"🚀 Launching FastAPI on port {port}")
+    uvicorn.run("start_server:app", host="0.0.0.0", port=port, reload=False)
