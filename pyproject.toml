@@ -36,4 +36,6 @@ dependencies = [
     "uuid>=1.30",
     "uvicorn>=0.35.0",
 ]
-
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
